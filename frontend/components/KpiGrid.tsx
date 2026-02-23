@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { memo } from "react";
 import {
   IconCurrencyRupee,
   IconBed,
@@ -9,51 +9,45 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { KpiCard } from "@/app/dashboard/_components/KPI/KapiComponents";
+import { useKPI } from "@/hooks/use-api";
 
-interface KPIData {
-  total_revenue: number;
-  total_revenue_change: number;
+const KpiGrid = memo(function KpiGrid() {
+  const { data, loading, error, refresh } = useKPI();
 
-  avg_occupancy: number;
-  avg_occupancy_change: number;
-
-  avg_adr: number;
-  avg_adr_change: number;
-
-  avg_revpar: number;
-  avg_revpar_change: number;
-
-  total_cancellations: number;
-  total_cancellations_change: number;
-}
-
-export default function KpiGrid() {
-  const [data, setData] = useState<KPIData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    fetch("http://localhost:8000/api/kpi", {
-      signal: controller.signal,
-    })
-      .then((res) => res.json())
-      .then((res) => setData(res))
-      .finally(() => setLoading(false));
-
-    return () => controller.abort();
-  }, []);
-
-  if (loading)
+  if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />
+          <div key={i} className="h-28 rounded-xl bg-muted/50" />
         ))}
       </div>
     );
+  }
 
-  if (!data) return <div>Failed to load KPI data</div>;
+  if (error) {
+    return (
+      <div className="border border-destructive/50 rounded-lg p-4 bg-destructive/5">
+        <div className="flex items-center gap-2 text-destructive">
+          <IconX className="h-4 w-4" />
+          <span className="text-sm font-medium">Failed to load KPI data: {error.message}</span>
+          <button
+            onClick={refresh}
+            className="ml-2 text-xs underline hover:no-underline"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="border rounded-lg p-4 bg-muted/5">
+        <span className="text-sm text-muted-foreground">No KPI data available</span>
+      </div>
+    );
+  }
 
   /* ---------- Helpers ---------- */
 
@@ -122,4 +116,6 @@ export default function KpiGrid() {
       />
     </div>
   );
-}
+});
+
+export default KpiGrid;
